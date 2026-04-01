@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>健腹轮计数器</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#1a1a2e;--card:#16213e;--accent:#0f3460;--green:#00d4aa;--orange:#f5a623;--red:#e94560;--text:#eaeaea;--muted:#8a8a9a}
+html,body{width:100%;height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,sans-serif;display:flex;flex-direction:row;}
+#left{flex:0 0 42%;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid var(--accent);padding:12px 8px;gap:6px;}
+.cl{font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
+#cd{font-size:clamp(72px,18vw,140px);font-weight:900;line-height:1;color:var(--green);text-shadow:0 0 40px rgba(0,212,170,.35);font-variant-numeric:tabular-nums;}
+#cd.pop{animation:pop .22s ease}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.12)}100%{transform:scale(1)}}
+.pbw{width:80%;height:8px;background:var(--accent);border-radius:4px;position:relative;margin-top:2px}
+#pb{position:absolute;height:100%;width:6px;background:var(--green);border-radius:4px;left:50%;transform:translateX(-50%);transition:left .08s}
+.pb-mid{position:absolute;left:50%;top:0;width:2px;height:100%;background:rgba(255,255,255,.15);transform:translateX(-50%)}
+#ph{font-size:11px;color:var(--muted);text-align:center;min-height:14px}
+#right{flex:1;display:flex;flex-direction:column;padding:10px 12px;gap:8px;overflow:hidden;}
+.hrow{display:flex;justify-content:space-between;align-items:center}
+.hrow h1{font-size:15px;font-weight:700}
+#sb{font-size:11px;padding:3px 9px;border-radius:16px;background:var(--accent);color:var(--muted);transition:all .3s;white-space:nowrap}
+#sb.on{background:var(--green);color:#000;font-weight:700}
+#sb.ext{background:var(--orange);color:#000;font-weight:700}
+.sc{background:var(--card);border-radius:12px;padding:8px 10px;display:flex;justify-content:space-around;flex-shrink:0}
+.si{text-align:center}
+.sv{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}
+.sl{font-size:10px;color:var(--muted);margin-top:1px}
+.stc{background:var(--card);border-radius:12px;padding:8px 12px;flex-shrink:0}
+.stc label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px}
+.stc label span{color:var(--text);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--green);height:4px}
+.br{display:flex;gap:8px;flex-shrink:0}
+button{flex:1;padding:12px 0;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:transform .1s}
+button:active{transform:scale(.95)}
+#bst{background:var(--green);color:#000}
+#brs{background:var(--card);color:var(--text);border:1px solid var(--accent)}
+#bst.stop{background:var(--red);color:#fff}
+#banner{display:none;background:#1a0a00;border:1px solid var(--orange);border-radius:10px;padding:7px 10px;font-size:11px;line-height:1.6;color:#f5a623;flex-shrink:0}
+#dp{background:#0a0a1a;border:1px solid var(--accent);border-radius:10px;padding:7px 10px;font-size:10px;font-family:monospace;color:var(--muted);line-height:1.7;white-space:pre-wrap;word-break:break-all;flex:1;overflow:hidden}
+</style>
+</head>
+<body>
+<div id="left">
+  <div class="cl">完成次数</div>
+  <div id="cd">0</div>
+  <div class="pbw"><div class="pb-mid"></div><div id="pb"></div></div>
+  <div id="ph">按「开始」后推出</div>
+</div>
+<div id="right">
+  <div class="hrow"><h1>🛞 健腹轮计数</h1><div id="sb">待机</div></div>
+  <div id="banner">⚠️ 传感器未就绪，请点「开始」授权</div>
+  <div class="sc">
+    <div class="si"><div class="sv" id="v-vel">0.00</div><div class="sl">速度 m/s</div></div>
+    <div class="si"><div class="sv" id="v-ax">0.00</div><div class="sl">加速度</div></div>
+    <div class="si"><div class="sv" id="v-axis">?</div><div class="sl">检测轴</div></div>
+  </div>
+  <div class="stc">
+    <label>速度阈值（灵敏度）<span id="tl">0.12</span></label>
+    <input type="range" id="ts" min="4" max="30" value="12" step="1">
+  </div>
+  <div class="br"><button id="bst">开始</button><button id="brs">重置</button></div>
+  <div id="dp">⏳ 初始化…</div>
+</div>
+<script>
+var _inIframe=false;
+try{_inIframe=(window!==window.top);}catch(e){_inIframe=true;}
+if(_inIframe){
+  document.open();
+  document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>健腹轮计数器</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#1a0a00;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:32px;font-family:-apple-system,sans-serif}</style></head><body><div style="font-size:56px">📱</div><div style="color:#f5a623;font-size:17px;text-align:center;line-height:1.8;font-weight:600">iOS 传感器权限需要在<br>独立窗口中授权</div><div style="color:#8a8a9a;font-size:13px;text-align:center;line-height:1.7">点下方按钮在新窗口打开<br>然后点「开始」即可授权使用</div><button onclick="window.open(location.href,\'_blank\')" style="background:#00d4aa;color:#000;border:none;padding:18px 40px;border-radius:14px;font-size:17px;font-weight:700;cursor:pointer;margin-top:8px">在新窗口打开 →</button></body></html>');
+  document.close();
+} else {
+const dp=document.getElementById('dp'),_l=[];
+function log(m){const t=new Date().toLocaleTimeString('zh',{hour12:false});_l.push('['+t+'] '+m);if(_l.length>12)_l.shift();dp.textContent=_l.join('\n');}
+const SMOOTH=0.75,DECAY=0.96,V_RESET=0.04,COOLDOWN=1200;
+let V_THRESH=0.12;
+let sax=0,say=0,vx=0,vy=0,lastT=null,axis=null;
+let wentFwd=false,wentBwd=false,lastCount=0,count=0,running=false,sensorOk=false;
+const cd=document.getElementById('cd'),sb=document.getElementById('sb');
+const pb=document.getElementById('pb'),phi=document.getElementById('ph');
+const vVel=document.getElementById('v-vel'),vAx=document.getElementById('v-ax'),vAxis=document.getElementById('v-axis');
+const bst=document.getElementById('bst'),brs=document.getElementById('brs');
+const ts=document.getElementById('ts'),tl=document.getElementById('tl'),ban=document.getElementById('banner');
+let ac=null;
+function beep(f,d){f=f||880;d=d||80;try{if(!ac)ac=new(window.AudioContext||window.webkitAudioContext)();var o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);o.frequency.value=f;g.gain.setValueAtTime(.3,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d/1000);o.start();o.stop(ac.currentTime+d/1000);}catch(e){}}
+function onMotion(e){if(!sensorOk){sensorOk=true;ban.style.display='none';log('✅ 加速度计 OK');}var now=Date.now(),dt=lastT?Math.min((now-lastT)/1000,0.05):0.016;lastT=now;var raw=e.acceleration&&e.acceleration.x!=null?e.acceleration:e.accelerationIncludingGravity;if(!raw)return;var ax=raw.x||0,ay=raw.y||0;sax=sax+SMOOTH*(ax-sax);say=say+SMOOTH*(ay-say);vx=vx*DECAY+sax*dt;vy=vy*DECAY+say*dt;if(!axis){if(Math.abs(vx)>V_THRESH*1.5){axis='x';log('主轴锁定: X');}else if(Math.abs(vy)>V_THRESH*1.5){axis='y';log('主轴锁定: Y');}}var vel=axis==='x'?vx:vy,speed=Math.sqrt(vx*vx+vy*vy);if(now%50<20){vVel.textContent=vel.toFixed(2);vAx.textContent=(axis==='x'?sax:say).toFixed(2);vAxis.textContent=axis||'?';var pct=Math.max(2,Math.min(98,50+vel/(V_THRESH*3)*50));pb.style.left=pct+'%';pb.style.background=vel>0?'var(--orange)':'var(--green)';}if(!running)return;if(vel>V_THRESH&&!wentFwd){wentFwd=true;sb.textContent='往前推…';sb.className='ext';phi.textContent='往前推…';}if(vel<-V_THRESH&&!wentBwd){wentBwd=true;sb.textContent='收回来！';sb.className='on';phi.textContent='收回来！';}if(wentFwd&&wentBwd&&speed<V_RESET&&(now-lastCount)>COOLDOWN){count++;lastCount=now;wentFwd=false;wentBwd=false;cd.textContent=count;cd.classList.remove('pop');void cd.offsetWidth;cd.classList.add('pop');beep(880,80);sb.textContent='✅ '+count+' 次';sb.className='on';phi.textContent='✅ '+count+'次！';log('计数 → '+count);}}
+function start(){running=true;wentFwd=false;wentBwd=false;vx=0;vy=0;sax=0;say=0;sb.textContent='运行中';sb.className='on';phi.textContent='往前推…';bst.textContent='停止';bst.classList.add('stop');beep(660,120);log('开始');}
+function stop_(){running=false;sb.textContent='已暂停';sb.className='';phi.textContent='按「开始」继续';bst.textContent='继续';bst.classList.remove('stop');}
+bst.addEventListener('click',function(){if(sensorOk){running?stop_():start();return;}log('请求传感器权限…');var EC=window.DeviceMotionEvent||window.DeviceOrientationEvent;if(EC&&typeof EC.requestPermission==='function'){EC.requestPermission().then(function(r){log('权限: '+r);if(r==='granted'){window.addEventListener('devicemotion',onMotion,true);setTimeout(function(){if(sensorOk)start();else{ban.style.display='block';log('❌ 无数据');}},1200);}else ban.style.display='block';}).catch(function(e){log('异常: '+e);window.addEventListener('devicemotion',onMotion,true);});}else{window.addEventListener('devicemotion',onMotion,true);setTimeout(function(){if(sensorOk)start();else{ban.style.display='block';log('❌ 无数据');}},1200);}});
+brs.addEventListener('click',function(){stop_();count=0;cd.textContent='0';wentFwd=false;wentBwd=false;vx=0;vy=0;axis=null;sb.textContent='待机';sb.className='';bst.textContent='开始';phi.textContent='按「开始」后推出';pb.style.left='50%';log('已重置');});
+ts.addEventListener('input',function(){V_THRESH=parseInt(ts.value)/100;tl.textContent=V_THRESH.toFixed(2);});
+log('协议: '+location.protocol+'  iOS: '+(/iPhone|iPad/.test(navigator.userAgent)?'是':'否'));
+if(!(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function')){window.addEventListener('devicemotion',onMotion,true);log('已挂载 devicemotion');}else log('iOS: 等待「开始」授权');
+setTimeout(function(){if(!sensorOk){ban.style.display='block';log('⚠️ 3s 无数据');}},3000);
+} // end else
+</script>
+</body>
+</html>
