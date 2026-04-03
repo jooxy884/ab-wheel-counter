@@ -217,12 +217,20 @@ function onMotion(e){
 function start(){running=true;wentFwd=false;wentBwd=false;vx=0;vy=0;sax=0;say=0;
   sb.textContent='运行中';sb.className='on';phi.textContent='往前推…';
   bst.textContent='停止';bst.classList.add('stop');beep(660,120);log('开始');
-  acquireWakeLock();}
+  if(!wakeLock)acquireWakeLock();}
 function stop_(){running=false;sb.textContent='已暂停';sb.className='';
   phi.textContent='按「开始」继续';bst.textContent='继续';bst.classList.remove('stop');
   releaseWakeLock();}
 
-bst.addEventListener('click',function(){
+bst.addEventListener('click',async function(){
+  // 在手势上下文内第一时间申请屏幕常亮（必须在任何 await/Promise 之前）
+  if('wakeLock' in navigator&&!wakeLock){
+    try{
+      wakeLock=await navigator.wakeLock.request('screen');
+      log('💡 屏幕常亮已开启');
+      wakeLock.addEventListener('release',function(){wakeLock=null;});
+    }catch(e){log('常亮: '+e.message);}
+  }
   if(sensorOk){running?stop_():start();return;}
   log('请求传感器权限…');
   var EC=window.DeviceMotionEvent||window.DeviceOrientationEvent;
